@@ -41,7 +41,7 @@ Procedo quindi ad un'installazione "fresca" di Proxmox su una workstation, a seg
 \end{figure}
 
 \subsection{Creazione server NFS}
-\subsubsection{Cenni su NFSv4}
+\subsubsection{Cenni su NFS e NFSv4}
 Il protocollo \Gls{NFS} versione 4 descritto dalla \cite[rfc7530]{rfc7530} è un'evoluzione dello stesso protocollo in versione 3 e 2 descritti
 rispettivamente dalle \cite[rfc1813]{rfc1813} e \cite[rfc1094]{rfc1094}, l'idea alla base del protocollo è quella di rendere accessibile delle
 risorse (file) all'interno della rete, indipendentemente dal sistema operativo o architettura di rete. Per realizzare questa astrazione il protocollo
@@ -103,6 +103,45 @@ otteniamo:
     \includegraphics[scale=0.65]{images/DockerInstallato.png}
     \caption{Output di Docker PS dopo averlo installato}
 \end{figure}
-\printbibliography
+\subsubsection{Creazione container NFS-SERVER}
+Abilitiamo i moduli NFS e NFSD dal kernel linux:
+\begin{Verbatim}[numbers=left,breaklines]
+    sudo modprobe {nfs,nfsd}
+\end{Verbatim}
+in alternativa si possono aggiungere questi due moduli nel file \textit{/etc/modules}
+Come immagine per docker verrà utilizzata \href{https://hub.docker.com/r/erichough/nfs-server/}{\textbf{nfs-server}}
+e verrà configurata mediante il seguente script compose:
+\begin{Verbatim}[numbers=left,breaklines]
+    services:
+        nfs-server:
+            image: erichough/nfs-server
+            container_name: nfs-server
+            restart: unless-stopped
+            # Necessario perché il protocollo
+            # usa delle direttive a livello di kernel
+            privileged: true
+            ports:
+            - "2049:2049" # NFS (Vedi relazione)
+            # - "111:111" # RPC (Queste porte sarebbero necessarie per supportare V3, non ci interessa per questo progetto)
+            # - "32765:32765" # mountd
+            # - "32767:32767" # statd
+            environment:
+            # Questo è un argument del server nfs
+            # che indica la cartella dentro al container
+            # da esportare con il protocollo, potrebbero
+            # essercene diverse.
+            - NFS_EXPORT_0=/exports
+            volumes:
+            # Espone la cartella interna esportata prima
+            # fuori dal container con una mappatura bind
+            - /srv/nfs:/exports
+\end{Verbatim}
+Dopo aver creato lo script ed eseguito "docker compose up" per farlo partire, nfs-server dovrebbe darci il seguente output:
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.30]{images/NFSSettato.png}
+    \caption{Dopo docker compose up}
+\end{figure}
 \printglossaries
+\printbibliography
 \end{document}
