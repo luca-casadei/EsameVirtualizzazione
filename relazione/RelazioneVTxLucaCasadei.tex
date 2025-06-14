@@ -1,0 +1,31 @@
+\documentclass[a4paper]{article}
+\usepackage[italian]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage{glossaries}
+
+\title{Relazione di progetto di Virtualizzazione e integrazione di sistemi\\
+\textbf{Server NFS e volumi di container}}
+\date{\today}
+\author{Luca Casadei\\Matricola: 0001069237}
+\makeglossaries
+
+\loadglsentries{defns}
+\setacronymstyle{short-long}
+
+\begin{document}
+\maketitle
+
+\tableofcontents
+
+\section{Creazione delle macchine virtuali}
+In questa sezione verrà indicata la modalità utilizzata per la creazione delle macchine virtuali, 
+in particolar modo verrà descritto il modo usato per metterle in comunicazione.
+\subsection{Ambiente di virtualizzazione}
+Come ambiente di virtualizzazione è stato scelto \textit{Proxmox}, un software debian-based open source che permette di gestire macchine virtuali basato
+sull'infrastruttura \gls{KVM} che fornisce già un repository di immagini \gls{LXC}.
+
+
+\printglossaries
+\end{document}
