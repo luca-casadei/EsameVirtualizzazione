@@ -112,29 +112,29 @@ in alternativa si possono aggiungere questi due moduli nel file \textit{/etc/mod
 Come immagine per docker verrà utilizzata \href{https://hub.docker.com/r/erichough/nfs-server/}{\textbf{nfs-server}}
 e verrà configurata mediante il seguente script compose:
 \begin{Verbatim}[numbers=left,breaklines]
+    name: nfsv4-server
+
     services:
-        nfs-server:
-            image: erichough/nfs-server
-            container_name: nfs-server
-            restart: unless-stopped
-            # Necessario perché il protocollo
-            # usa delle direttive a livello di kernel
-            privileged: true
-            ports:
-            - "2049:2049" # NFS (Vedi relazione)
-            # - "111:111" # RPC (Queste porte sarebbero necessarie per supportare V3, non ci interessa per questo progetto)
-            # - "32765:32765" # mountd
-            # - "32767:32767" # statd
-            environment:
-            # Questo è un argument del server nfs
-            # che indica la cartella dentro al container
-            # da esportare con il protocollo, potrebbero
-            # essercene diverse.
-            - NFS_EXPORT_0=/exports
-            volumes:
-            # Espone la cartella interna esportata prima
-            # fuori dal container con una mappatura bind
-            - /srv/nfs:/exports
+    nfs-server:
+        image: erichough/nfs-server
+        container_name: nfs-server
+        restart: unless-stopped
+        privileged: true
+        ports:
+        - "2049:2049" # NFS (Vedi relazione)
+        - "111:111" # RPC (Queste porte sarebbero necessarie per supportare V3, non ci interessa per questo progetto)
+        - "32765:32765" # mountd
+        - "32767:32767" # statd
+        environment:
+        # Questo è un argument del server nfs
+        # che indica la cartella dentro al container
+        # da esportare con il protocollo, potrebbero
+        # essercene diverse.
+        - NFS_EXPORT_0=/exports *(rw,sync,no_subtree_check)
+        volumes:
+        # Espone la cartella interna esportata prima
+        # fuori dal container con una mappatura bind
+        - /srv/nfs:/exports
 \end{Verbatim}
 Dopo aver creato lo script ed eseguito "docker compose up" per farlo partire, nfs-server dovrebbe darci il seguente output:
 \begin{figure}[H]
@@ -142,6 +142,66 @@ Dopo aver creato lo script ed eseguito "docker compose up" per farlo partire, nf
     \includegraphics[scale=0.30]{images/NFSSettato.png}
     \caption{Dopo docker compose up}
 \end{figure}
+
+\subsection{Creazione della seconda macchina virtuale (WebServer)}
+\subsubsection{Sistema operativo}
+Come sistema operativo della seconda macchina virtuale ho scelto \textit{Alpine Linux} per due ragioni principali, la prima
+è per mostrare il funzionamento anche su sistemi leggermente diversi, seppur entrambi linux, e questo è estremamente leggero e minimale,
+la seconda ragione è una personale avversione ad installare sistemi non open source. Questa è la configurazione della macchina virtuale,
+con un processore Intel.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.9]{images/VMWebServer.png}
+    \caption{Creazione della macchina virtuale per il WebServer}
+\end{figure}
+
+Si procede quindi all'installazione su disco di Alpine Linux mediante il comando \textit{"setup-alpine"},
+per verificare la corretta impostazione delle interfacce con dhcp si può usare \textit{"ip a"} 
+e si ottiene:
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.6]{images/AlpineInstallato.png}
+    \caption{Alpine Linux installato}
+\end{figure}
+
+\subsubsection{Test server NFS}
+Tornando alla prima macchina virtuale e lanciando un ping, si può vedere che le due macchine riescono a 
+comunicare.
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.8]{images/MacchineComunicano.png}
+    \caption{I due server comunicano con ping}
+\end{figure}
+Ora facciamo però una prova specifica con NFS, dopo aver installato su alpine nfs-utils (solo per prova, non servirà nel sistema finale)
+possiamo montare un percorso connettendoci al server NFS, con i comandi visibili nell'immagine, e successivamente creare un file in una delle
+due cartelle predisposte per l'esportazione dal server NFS, ad esempio "db":
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.8]{images/ProvaNFS.png}
+    \caption{Mount del percorso esposrtato e creazione di file di prova}
+\end{figure}
+Questo file deve ora essere visibile anche dal server, nella corrispondente cartella:
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.9]{images/NFSFunziona.png}
+    \caption{file visibile nel server NFS}
+\end{figure}
+\section{Creazione di un servizio che si appoggia su volumi NFS per la persistenza}
+Questa è la parte cruciale del progetto, la creazione di un insieme di container che adottino
+persistenza dei dati sul nostro server NFS, partiamo quindi dalla creazione del file compose
+che metta in esecuzione un semplicissimo e basilare sito web, ed il relativo database, i cui dati
+devono essere persistenti e appunto, su volumi NFS.
+\subsection{Creazione del sito web di prova e database}
+Questi codici sono consultabili dalla repository, non essendo questo progetto incentrato sulla programmazione
+web verranno omessi i passaggi per realizzarli in questa relazione, elenco brevemente le tecnologie usate:
+\begin{itemize}
+    \item MariaDB: Database per testare la persistenza dei dati su volumi NFS
+    \item PHP: Lato server
+    \item Javascript + HTML con Apache come server http
+\end{itemize}
+Il sito presenta un semplice elenco di elementi a caso che si possono aggiungere mediate apposito form, nulla di più.
+
 \printglossaries
 \printbibliography
 \end{document}
