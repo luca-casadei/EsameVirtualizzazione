@@ -1,23 +1,23 @@
+name: nfsv4-server
+
 services:
   nfs-server:
     image: erichough/nfs-server
     container_name: nfs-server
     restart: unless-stopped
-    # Necessario perché il protocollo
-    # usa delle direttive a livello di kernel
     privileged: true
     ports:
       - "2049:2049" # NFS (Vedi relazione)
-      # - "111:111" # RPC (Queste porte sarebbero necessarie per supportare V3, non ci interessa per questo progetto)
-      # - "32765:32765" # mountd
-      # - "32767:32767" # statd
+      - "111:111" # RPC (Queste porte sarebbero necessarie per supportare V3, non ci interessa per questo progetto)
+      - "32765:32765" # mountd
+      - "32767:32767" # statd
     environment:
       # Questo è un argument del server nfs
       # che indica la cartella dentro al container
       # da esportare con il protocollo, potrebbero
       # essercene diverse.
-      - NFS_EXPORT_0=/exports
+      - NFS_EXPORT_0=/exports/db *(rw,sync,no_subtree_check,no_root_squash)
     volumes:
       # Espone la cartella interna esportata prima
       # fuori dal container con una mappatura bind
-      - /srv/nfs:/exports
+      - /srv/nfs/exports/db:/exports/db

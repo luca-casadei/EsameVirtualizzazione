@@ -103,39 +103,14 @@ otteniamo:
     \includegraphics[scale=0.65]{images/DockerInstallato.png}
     \caption{Output di Docker PS dopo averlo installato}
 \end{figure}
-\subsubsection{Creazione container NFS-SERVER}
+\subsubsection{Creazione e configurazione del container nfs-server}
 Abilitiamo i moduli NFS e NFSD dal kernel linux:
 \begin{Verbatim}[numbers=left,breaklines]
     sudo modprobe {nfs,nfsd}
 \end{Verbatim}
 in alternativa si possono aggiungere questi due moduli nel file \textit{/etc/modules}
 Come immagine per docker verrà utilizzata \href{https://hub.docker.com/r/erichough/nfs-server/}{\textbf{nfs-server}}
-e verrà configurata mediante il seguente script compose:
-\begin{Verbatim}[numbers=left,breaklines]
-    name: nfsv4-server
-
-    services:
-    nfs-server:
-        image: erichough/nfs-server
-        container_name: nfs-server
-        restart: unless-stopped
-        privileged: true
-        ports:
-        - "2049:2049" # NFS (Vedi relazione)
-        - "111:111" # RPC (Queste porte sarebbero necessarie per supportare V3, non ci interessa per questo progetto)
-        - "32765:32765" # mountd
-        - "32767:32767" # statd
-        environment:
-        # Questo è un argument del server nfs
-        # che indica la cartella dentro al container
-        # da esportare con il protocollo, potrebbero
-        # essercene diverse.
-        - NFS_EXPORT_0=/exports *(rw,sync,no_subtree_check)
-        volumes:
-        # Espone la cartella interna esportata prima
-        # fuori dal container con una mappatura bind
-        - /srv/nfs:/exports
-\end{Verbatim}
+e verrà configurata mediante lo script compose chiamato: "nfs-docker-compose.yml" (Vedi file per dettagli)
 Dopo aver creato lo script ed eseguito "docker compose up" per farlo partire, nfs-server dovrebbe darci il seguente output:
 \begin{figure}[H]
     \centering
@@ -196,11 +171,47 @@ devono essere persistenti e appunto, su volumi NFS.
 Questi codici sono consultabili dalla repository, non essendo questo progetto incentrato sulla programmazione
 web verranno omessi i passaggi per realizzarli in questa relazione, elenco brevemente le tecnologie usate:
 \begin{itemize}
-    \item MariaDB: Database per testare la persistenza dei dati su volumi NFS
-    \item PHP: Lato server
-    \item Javascript + HTML con Apache come server http
+    \item \textbf{MariaDB}: Database per testare la persistenza dei dati su volumi NFS
+    \item \textbf{PHP}: Lato server
+    \item \textbf{Javascript + HTML}: con Apache come server http
 \end{itemize}
 Il sito presenta un semplice elenco di elementi a caso che si possono aggiungere mediate apposito form, nulla di più.
+Il database viene inizialmente popolato dallo script crea-tabella.sql montato come volume di tipo bind durante l'inizializzazione
+del container, dato che abbiamo la persistenza dei dati tramite NFS, se vogliamo svuotare completamente il database e forzare di nuovo
+l'inizializzazione dobbiamo rimuovere i file che MariaDB crea all'interno della cartella condivisa, o dal server NFS o dal container stesso.
+Il container per PHP e Apache viene creato secondo l'apposito Dockerfile corredato assieme alla relazione nella cartella web/sito.
+\subsection{Test conclusivo}
+Quando lanciamo "docker compose up -d" partendo da web-docker-compose.yml si ottiene:
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=1]{images/ServiziFunzionanti.png}
+    \caption{Servizi funzionanti}
+\end{figure}
+A questo punto è possibile accedere al sito mediante l'indirizzo della macchina virtuale web-server:
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.7]{images/PaginaSito.png}
+    \caption{Sito web}
+\end{figure}
+Dal form si possono quindi aggiungere diversi elementi che verranno visualizzati nella lista, per testare la persistenza dei dati, si può forzare il build
+del container del database aggiungendo \textit{--build} a docker compose up, e si noterà che gli elementi che erano stati inseriti in precedenza sono ancora
+visualizzabili nella lista perché MariaDB vede che ci sono degli elementi pre-esistenti nel volume nfs, se invece si cancellano i file creati da maria db nel volume nfs da un'altra macchina virtuale (o il container stesso) al prossimo
+avvio MariaDB dovrà rieffettuare l'inizializzazione, svuotando di conseguenza tutto il suo contenuto, al che alla riapertura del sito non si vedranno più elementi nella lista.
+\section{Conclusioni}
+\subsection{Struttura del progetto e password}
+\begin{itemize}
+    \item \textbf{Ambiente di virtualizzazione}: ProxMox
+    \begin{itemize}
+        \item \textbf{Macchina virtuale 1 (100)}: Contiene container per il server NFS, il percorso dei file è /home/luca, la password per gli account (luca, root) è: nfs
+        \item \textbf{Macchina virtuale 2 (101)}: Contiene i servizi web e database che usa volume NFS, il percorso dei file è "/root/servizi/*", la password per gli account (luca, root) è: web-server
+        \begin{itemize}
+            \item \textbf{web-server}: Container con immagine PHP-Apache creato mediante Dockerfile, il percorso interessato è sito/*
+            \item \textbf{database}: Container con immagine MariaDB che monta un volume con driver NFS, il percorso interessato è sql/*
+        \end{itemize}
+    \end{itemize}
+\end{itemize}
+Entrambe le macchine hanno accesso ssh abilitato sull'account "luca" con password nfs e web-server
+
 
 \printglossaries
 \printbibliography

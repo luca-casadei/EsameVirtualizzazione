@@ -1,0 +1,2 @@
+CREATE TABLE `sito`.`elementi` (`Numero` INT NOT NULL , `Nome` VARCHAR(30) NULL , `Cognome` VARCHAR(30) NULL , PRIMARY KEY (`Numero`)) ENGINE = InnoDB;
+ALTER TABLE `elementi` CHANGE `Numero` `Numero` INT(11) NOT NULL AUTO_INCREMENT;

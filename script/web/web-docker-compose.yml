@@ -1,0 +1,53 @@
+name: web-server
+
+services:
+    database:
+        image: mariadb
+        restart: always
+        environment:
+            - MARIADB_DATABASE=sito
+            - MARIADB_USER=usersito
+            - MARIADB_PASSWORD=prova
+            # Imposta una password di root casuale
+            # tanto non ci serve.
+            - MARIADB_RANDOM_ROOT_PASSWORD=1
+        healthcheck:
+            # MariaDB molto comodamente fornisce già uno script per l'healthcheck
+            # ma con lo storage lento di NFS non è adatto, quindi ne ho creato uno
+            # "fatto in casa"
+            test: [ "CMD", "mariadb-admin", "-uusersito", "-pprova", "ping", "-h", "localhost", "--silent" ]
+            start_period: 60s # Tempo per inizializzazione DB
+            interval: 10s
+            timeout: 5s
+            retries: 10
+        # Docker monta i dati del database
+        # sul volume montato con NFS
+        volumes:
+            # Volume per la persistenza dei dati
+            # che si appoggia su NFS
+            - datidb:/var/lib/mysql
+            # Volume di bind per caricare lo script
+            # di popolamento del db all'avvio
+            - ./sql/creazione-tabella.sql:/docker-entrypoint-initdb.d/elementi.sql
+
+    sito:
+        build: sito/.
+        restart: unless-stopped
+        ports: 
+            - "80:80"
+        # Facciamolo partire solo se il database è stato
+        # avviato correttamente senza alcun errore.
+        depends_on:
+            database:
+                condition: service_healthy
+
+volumes:
+    datidb:
+        # Impongo a docker di usare un driver di tipo NFS
+        # che si connette al server nfs e ci piazza i dati
+        # del database.
+        driver: local
+        driver_opts:
+            type: nfs
+            o: addr=nfs-server,rw,nolock
+            device: ":/exports/db"

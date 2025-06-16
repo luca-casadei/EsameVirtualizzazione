@@ -1,0 +1,27 @@
+div.riga {
+    display: flex;
+    flex-direction: row;
+}
+
+div.colonna {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+form#addform{
+    width: 40%;
+}
+
+form div.riga > input[type="text"]{
+    width: 40%;
+}
+
+form div.riga > label{
+    width: 40%;
+}
+
+form button[type="submit"]{
+    margin-top: 10px;
+    width: 100%;
+}
