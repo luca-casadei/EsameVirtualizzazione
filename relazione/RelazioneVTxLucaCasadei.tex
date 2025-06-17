@@ -140,7 +140,7 @@ e si ottiene:
     \caption{Alpine Linux installato}
 \end{figure}
 
-\subsubsection{Test server NFS}
+\subsubsection{Comunicazione tra macchine virtuali}
 Tornando alla prima macchina virtuale e lanciando un ping, si può vedere che le due macchine riescono a 
 comunicare.
 \begin{figure}[H]
@@ -148,6 +148,33 @@ comunicare.
     \includegraphics[scale=0.8]{images/MacchineComunicano.png}
     \caption{I due server comunicano con ping}
 \end{figure}
+Se vogliamo usare i nomi di dominio, essendo il bridge di proxmox assegnato alle macchine virtuali di default (vmbr0)
+condiviso con la rete della macchina host (la workstation), la configurazione di rete viene data dal router a cui è collegata
+la workstation mediante DHCP, e se il router funge anche da server DNS, ci consente di trovare nella rete locale le macchine (virtuali o no)
+mediante il loro nome di dominio, ottenendo quindi il seguente risultato con ping:
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.55]{images/MacchineComunicanoHostname.png}
+    \caption{Macchine comunicano anche usando hostname}
+\end{figure}
+Se questo non fosse possibile, potremmo modificare il file \textit{"/etc/hosts"} all'interno delle macchine virtuali ed aggiungere manualmente il
+nome di dominio, ad esempio, questo potrebbe essere il file hosts all'interno della macchina nfs-server che contiene il record dell'altra macchina virtuale:
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.8]{images/HostsNfs.png}
+    \caption{File hosts in /etc nella macchina nfs-server}
+\end{figure}
+se usiamo ping adesso, in nome di dominio completo sarà diverso da quello precedente perché non è più quello fornito dal server dns del router:
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.60]{images/HostsNFSPing.png}
+    \caption{Nome di dominio diverso se in file hosts}
+\end{figure}
+Un'ulteriore alternativa sarebbe quella di creare (virtuale o meno) un server DNS all'interno della stessa rete per evitare di andare ad aggiungere ogni
+hostname nel file /etc/hosts di ogni macchina, sarebbe la soluzione più raffinata ma il procedimento per questa modalità verrà omesso perché non rientrante
+nell'obiettivo del progetto.
+
+\subsubsection{Prova specifica NFS}
 Ora facciamo però una prova specifica con NFS, dopo aver installato su alpine nfs-utils (solo per prova, non servirà nel sistema finale)
 possiamo montare un percorso connettendoci al server NFS, con i comandi visibili nell'immagine, e successivamente creare un file in una delle
 due cartelle predisposte per l'esportazione dal server NFS, ad esempio "db":
